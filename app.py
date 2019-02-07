@@ -38,8 +38,8 @@ YOU ONLY NEED TO CHANGE THE
 TO GET AN API KEY FOLLOW THIS LINK
 https://developers.google.com/maps/documentation/embed/get-api-key
 '''''''''''''''''''''''''''
-gmapsAPIkey = "changethis"
-
+gmapsAPIkey = "REPLACE API KEY"
+API_BASE_URL = "https://711-goodcall.api.tigerspike.com/api/v1"
 
 
 def cheapestFuelAll():
@@ -50,27 +50,28 @@ def cheapestFuelAll():
 
     # E10
     session['postcode0'] = response['regions'][0]['prices'][0]['postcode']
-    session['price0']    = response['regions'][0]['prices'][0]['price']
+    session['price0'] = response['regions'][0]['prices'][0]['price']
 
     # Unleaded 91
     session['postcode1'] = response['regions'][0]['prices'][1]['postcode']
-    session['price1']    = response['regions'][0]['prices'][1]['price']
+    session['price1'] = response['regions'][0]['prices'][1]['price']
 
     # Unleaded 95
     session['postcode2'] = response['regions'][0]['prices'][2]['postcode']
-    session['price2']    = response['regions'][0]['prices'][2]['price']
+    session['price2'] = response['regions'][0]['prices'][2]['price']
 
     # Unleaded 98
     session['postcode3'] = response['regions'][0]['prices'][3]['postcode']
-    session['price3']    = response['regions'][0]['prices'][3]['price']
+    session['price3'] = response['regions'][0]['prices'][3]['price']
 
     # Diesel
     session['postcode4'] = response['regions'][0]['prices'][4]['postcode']
-    session['price4']    = response['regions'][0]['prices'][4]['price']
+    session['price4'] = response['regions'][0]['prices'][4]['price']
 
     # LPG
     session['postcode5'] = response['regions'][0]['prices'][5]['postcode']
-    session['price5']    = response['regions'][0]['prices'][5]['price']
+    session['price5'] = response['regions'][0]['prices'][5]['price']
+
 
 def cheapestFuel(fueltype):
     # Gets the cheapest fuel price for a certain type of fuel and the postcode
@@ -85,17 +86,17 @@ def cheapestFuel(fueltype):
     56 = Unleaded 98
     57 = E10
     '''
-    if(fueltype == "52"):
+    if (fueltype == "52"):
         fueltype = 1
-    if(fueltype == "53"):
+    if (fueltype == "53"):
         fueltype = 4
-    if(fueltype == "54"):
+    if (fueltype == "54"):
         fueltype = 5
-    if(fueltype == "55"):
+    if (fueltype == "55"):
         fueltype = 2
-    if(fueltype == "56"):
+    if (fueltype == "56"):
         fueltype = 3
-    if(fueltype == "57"):
+    if (fueltype == "57"):
         fueltype = 0
 
     # Get the postcode and price
@@ -103,38 +104,37 @@ def cheapestFuel(fueltype):
     price = response['regions'][0]['prices'][fueltype]['price']
     return postcode, price
 
+
 def lockedPrices():
     # This function is used for getting our locked in fuel prices to display on the main page
 
     # Remove all of our previous error messages
     session.pop('ErrorMessage', None)
 
-    url       = "https://711-goodcall.api.tigerspike.com/api/v1/FuelLock/List"
-    replace   = url.replace("https", "http").lower()
-    timestamp = int(time.time())
-    uuidVar   = str(uuid.uuid4())
-    str3      = key + "GET" + replace + str(timestamp) + uuidVar
 
-    signature = base64.b64encode(hmac.new(key2, str3, digestmod=hashlib.sha256).digest())
-    tssa = "tssa 4d53bce03ec34c0a911182d4c228ee6c:" + signature + ":" + uuidVar + ":" + str(timestamp) + ":" + session['accessToken']
+    # The FuelLock URL
+    relativeURL = "/FuelLock/List"
+    url = API_BASE_URL + relativeURL
+    # Generate the tssa string for inclusion in the headers
+    tssa = generateTssa(url, "GET", None, session['accessToken'])
 
-    headers = {'User-Agent':'Apache-HttpClient/UNAVAILABLE (java 1.4)',
-               'Authorization':'%s' % tssa,
-               'X-OsVersion':'Android 8.1.0',
-               'X-OsName':'Android',
-               'X-DeviceID':session['deviceID'],
-               'X-AppVersion':'1.7.0.2009',
-               'X-DeviceSecret':session['deviceSecret'],
-               'Content-Type':'application/json; charset=utf-8'}
+    headers = {'User-Agent': 'Apache-HttpClient/UNAVAILABLE (java 1.4)',
+               'Authorization': '%s' % tssa,
+               'X-OsVersion': 'Android 8.1.0',
+               'X-OsName': 'Android',
+               'X-DeviceID': session['deviceID'],
+               'X-AppVersion': '1.7.0.2009',
+               'X-DeviceSecret': session['deviceSecret'],
+               'Content-Type': 'application/json; charset=utf-8'}
 
     response = requests.get(url, headers=headers)
-    returnContent = json.loads(response.content)
+    returnContent = json.loads(response.content.decode('utf-8'))
 
-    # An error occours if we have never locked in a price before
+    # An error occurs if we have never locked in a price before
     try:
         session['fuelLockId'] = returnContent[0]['Id']
         session['fuelLockStatus'] = returnContent[0]['Status']
-        session['fuelLockActive'] = [0,0,0]
+        session['fuelLockActive'] = [0, 0, 0]
         session['fuelLockType'] = returnContent[0]['FuelGradeModel']
         session['fuelLockCPL'] = returnContent[0]['CentsPerLitre']
         session['fuelLockLitres'] = returnContent[0]['TotalLitres']
@@ -151,16 +151,17 @@ def lockedPrices():
         except:
             pass
 
-        if(session['fuelLockStatus'] == 0):
+        if (session['fuelLockStatus'] == 0):
             session['fuelLockActive'][0] = "Active"
 
-        elif(session['fuelLockStatus'] == 1):
+        elif (session['fuelLockStatus'] == 1):
             session['fuelLockActive'][1] = "Expired"
 
-        elif(session['fuelLockStatus'] == 2):
+        elif (session['fuelLockStatus'] == 2):
             session['fuelLockActive'][2] = "Redeemed"
 
-        return session['fuelLockId'], session['fuelLockStatus'], session['fuelLockType'], session['fuelLockCPL'], session['fuelLockLitres'], session['fuelLockExpiry'], session['fuelLockRedeemed']
+        return session['fuelLockId'], session['fuelLockStatus'], session['fuelLockType'], session['fuelLockCPL'], \
+               session['fuelLockLitres'], session['fuelLockExpiry'], session['fuelLockRedeemed']
 
     except:
         # Since we haven't locked in a fuel price before
@@ -173,37 +174,76 @@ def lockedPrices():
         session['fuelLockRedeemed'] = ""
         session['fuelLockExpiry'] = ""
 
-        return session['fuelLockId'], session['fuelLockStatus'], session['fuelLockType'], session['fuelLockCPL'], session['fuelLockLitres'], session['fuelLockExpiry'], session['fuelLockRedeemed']
+        return session['fuelLockId'], session['fuelLockStatus'], session['fuelLockType'], session['fuelLockCPL'], \
+               session['fuelLockLitres'], session['fuelLockExpiry'], session['fuelLockRedeemed']
+
 
 def getKey(encryptedKey):
-  # get the hex from the encrypted secret key and then split every 2nd character into an array row
-  hex_string = hashlib.sha1("om.sevenel").hexdigest()
-  hex_array = [hex_string[i:i+2] for i in range(0,len(hex_string),2)]
+    # get the hex from the encrypted secret key and then split every 2nd character into an array row
+    # hex_string = hashlib.sha1("om.sevenel").encode(utf-8).hexdigest()
+    hex_string = hashlib.sha1(("om.sevenel").encode('utf-8')).hexdigest()
+    hex_array = [hex_string[i:i + 2] for i in range(0, len(hex_string), 2)]
 
-  # Key is the returned key
-  key = ""
-  i = 0
+    # Key is the returned key
+    key = ""
+    i = 0
 
-  # Get the unobfuscated key
-  while(i < len(encryptedKey)):
-    length = i%(len(hex_array))
-    key += chr( int(hex_array[length], 16) ^ int ( encryptedKey[i] ))
+    # Get the unobfuscated key
+    while (i < len(encryptedKey)):
+        length = i % (len(hex_array))
+        key += chr(int(hex_array[length], 16) ^ int(encryptedKey[i]))
 
-    i = i + 1
-  return key
+        i = i + 1
+    return key
+
+
+def generateTssa(url, method, payload=None, accessToken=None):
+    """ Encrypts the optional payload data and generates a "tssa" string """
+
+    # Initialse the tssa string elements http url, timestamp and UUID
+    replace = url.replace("https", "http").lower()
+    timestamp = int(time.time())
+    uuidVar = str(uuid.uuid4())
+
+    # Put all of the above data into one string
+    str3 = key + method + replace + str(timestamp) + uuidVar
+
+    if method == 'POST':
+        # MD5 Hash the payload and then Base64 encode the hash if we are posting a payload
+        encrypteddata = base64.b64encode(hashlib.md5(payload.encode()).digest())
+        # Append the encrypted data
+        str3 = str3 + encrypteddata.decode()
+
+    # Encrypt the built string and base64 encode
+    signature = base64.b64encode(hmac.new(key2, str3.encode(), digestmod=hashlib.sha256).digest())
+    # Build the tssa string
+    tssaString = "tssa " + key + ":" + signature.decode() + ":" + uuidVar + ":" + str(timestamp)
+
+    # Check if an accessToken has been generated for the session and append to the tssaString
+    if session['accessToken']:
+        tssaString = tssaString + ":" + session['accessToken']
+
+    return tssaString
+
 
 # key is the OBFUSCATED_APP_ID
-key       = getKey([36, 132, 5, 129, 42, 105, 114, 152, 34, 137, 126, 125, 93, 11, 117, 200, 157, 243, 228, 226, 40, 210, 84, 134, 43, 56, 37, 144, 116, 137, 43, 45])
+key = getKey(
+    [36, 132, 5, 129, 42, 105, 114, 152, 34, 137, 126, 125, 93, 11, 117, 200, 157, 243, 228, 226, 40, 210, 84, 134, 43,
+     56, 37, 144, 116, 137, 43, 45])
 # key2 is the OBFUSCATED_API_ID
-key2      = base64.b64decode(getKey([81, 217, 3, 192, 45, 88, 67, 253, 91, 164, 110, 13, 28, 57, 22, 225, 246, 233, 153, 224, 87, 152, 65, 253, 2, 115, 83, 197, 64, 156, 94, 41, 25, 27, 116, 153, 150, 161, 188, 166, 113, 130, 83, 143]))
+key2 = base64.b64decode(getKey(
+    [81, 217, 3, 192, 45, 88, 67, 253, 91, 164, 110, 13, 28, 57, 22, 225, 246, 233, 153, 224, 87, 152, 65, 253, 2, 115,
+     83, 197, 64, 156, 94, 41, 25, 27, 116, 153, 150, 161, 188, 166, 113, 130, 83, 143]))
 # The current time
 timeNow = int(time.time())
 
 app = Flask(__name__)
+
+
 @app.route('/')
 def index():
     # If they have pressed the refresh link remove the error and success messages
-    if(request.args.get('action') == "refresh"):
+    if (request.args.get('action') == "refresh"):
         session.pop('ErrorMessage', None)
         session.pop('SuccessMessage', None)
 
@@ -212,43 +252,36 @@ def index():
     return render_template('price.html')
 
 
-
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     # Clear the error and success message
     session.pop('ErrorMessage', None)
     session.pop('SuccessMessage', None)
 
+    # Use a default deviceID for the session on login
+    session['deviceID'] = "619a7dcdb433b27"
+    session['accessToken'] = ""
+
     if request.method == 'POST':
         password = str(request.form['password'])
         email = str(request.form['email'])
 
-        # The JSON payload to login and then we MD5 encrypt the string and then base64 encode it
-        payload = '{"Email":"' + email + '","Password":"' + password + '","DeviceName":"HTC6525LVW","DeviceOsNameVersion":"Android 8.1.0"}'
-        encrypteddata = base64.b64encode(hashlib.md5(payload).digest())
+        # The JSON payload to login
+        payload = '{"Email":"' + email + '","Password":"' + password + '","DeviceName":"HUAWEIP9","DeviceOsNameVersion":"Android 8.1.0"}'
 
+        # The login URL
+        relativeURL = "/account/login"
+        url = API_BASE_URL + relativeURL
+        # Generate the tssa string for inclusion in the headers
+        tssa = generateTssa(url, "POST", payload)
 
-        # Generate a Device ID. We store it in a session so that it is tied to each lockin
-        session['deviceID'] = ''.join(random.choice('0123456789abcdef') for i in range(15))
-        # The login URL and a current timestamp + UUID
-        url       = "https://711-goodcall.api.tigerspike.com/api/v1/account/login"
-        replace   = url.replace("https", "http").lower()
-        timestamp = int(time.time())
-        uuidVar   = str(uuid.uuid4())
-
-        # Put all of the above data into one string and then encrypt it
-        str3      = key + "POST" + replace + str(timestamp) + uuidVar + encrypteddata
-        signature = base64.b64encode(hmac.new(key2, str3, digestmod=hashlib.sha256).digest())
-
-        tssa = "tssa 4d53bce03ec34c0a911182d4c228ee6c:" + signature + ":" + uuidVar + ":" + str(timestamp)
-
-        headers = {'User-Agent':'Apache-HttpClient/UNAVAILABLE (java 1.4)',
-                   'Authorization':'%s' % tssa,
-                   'X-OsVersion':'Android 8.1.0',
-                   'X-OsName':'Android',
-                   'X-DeviceID':session['deviceID'],
-                   'X-AppVersion':'1.7.0.2009',
-                   'Content-Type':'application/json; charset=utf-8'}
+        headers = {'User-Agent': 'Apache-HttpClient/UNAVAILABLE (java 1.4)',
+                   'Authorization': '%s' % tssa,
+                   'X-OsVersion': 'Android 8.1.0',
+                   'X-OsName': 'Android',
+                   'X-DeviceID': session['deviceID'],
+                   'X-AppVersion': '1.7.0.2009',
+                   'Content-Type': 'application/json; charset=utf-8'}
 
         response = requests.post(url, data=payload, headers=headers)
 
@@ -257,7 +290,7 @@ def login():
 
         try:
             # If there was an error logging in, redirect to the index page with the 7Eleven response
-            if(returnContent['Message']):
+            if (returnContent['Message']):
                 session['ErrorMessage'] = returnContent['Message']
                 return redirect(url_for('index'))
 
@@ -270,10 +303,10 @@ def login():
 
             # DeviceSecretToken and accountID are both needed to lock in a fuel price
             deviceSecret = returnContent['DeviceSecretToken']
-            accountID    = returnContent['AccountId']
+            accountID = returnContent['AccountId']
             # Save the users first name and their card balance so we can display it
-            firstName    = returnContent['FirstName']
-            cardBalance  = str(returnContent['DigitalCard']['Balance'])
+            firstName = returnContent['FirstName']
+            cardBalance = str(returnContent['DigitalCard']['Balance'])
 
             session['deviceSecret'] = deviceSecret
             session['accessToken'] = accessToken
@@ -290,38 +323,32 @@ def login():
 
 @app.route('/logout')
 def logout():
-
     # The logout payload is an empty string but it is still needed
     payload = '""'
-    encrypteddata = base64.b64encode(hashlib.md5(payload).digest())
 
     # The logout URL and a current timestamp + UUID
-    url       = "https://711-goodcall.api.tigerspike.com/api/v1/account/logout"
-    replace   = url.replace("https", "http").lower()
-    timestamp = int(time.time())
-    uuidVar   = str(uuid.uuid4())
 
-    # Put all of the above data into one string and then encrypt it
-    str3      = key + "POST" + replace + str(timestamp) + uuidVar + encrypteddata
-    signature = base64.b64encode(hmac.new(key2, str3, digestmod=hashlib.sha256).digest())
+    relativeURL = "/account/logout"
+    url = API_BASE_URL + relativeURL
+    # Generate the tssa string for inclusion in the headers
+    tssa = generateTssa(url, "POST", payload, session['accessToken'])
 
-    tssa = "tssa 4d53bce03ec34c0a911182d4c228ee6c:" + signature + ":" + uuidVar + ":" + str(timestamp) + ":" + session['accessToken']
-
-    headers = {'User-Agent':'Apache-HttpClient/UNAVAILABLE (java 1.4)',
-               'Authorization':'%s' % tssa,
-               'X-OsVersion':'Android 8.1.0',
-               'X-OsName':'Android',
-               'X-DeviceID':session['deviceID'],
-               'X-AppVersion':'1.7.0.2009',
-               'X-DeviceSecret':session['deviceSecret'],
-               'Content-Type':'application/json; charset=utf-8'}
+    headers = {'User-Agent': 'Apache-HttpClient/UNAVAILABLE (java 1.4)',
+               'Authorization': '%s' % tssa,
+               'X-OsVersion': 'Android 8.1.0',
+               'X-OsName': 'Android',
+               'X-DeviceID': session['deviceID'],
+               'X-AppVersion': '1.7.0.2009',
+               'X-DeviceSecret': session['deviceSecret'],
+               'Content-Type': 'application/json; charset=utf-8'}
 
     response = requests.post(url, data=payload, headers=headers)
     # Clear all of the previously set session variables and then redirect to the index page
     session.clear()
     return redirect(url_for('index'))
 
-@app.route('/lockin',  methods=['POST', 'GET'])
+
+@app.route('/lockin', methods=['POST', 'GET'])
 def lockin():
     if request.method == 'POST':
         # Variable used to search for a manual price
@@ -338,58 +365,52 @@ def lockin():
         locationResult = cheapestFuel(fuelType)
 
         # Initiate the google maps API
-        gmaps = googlemaps.Client(key = gmapsAPIkey)
+        gmaps = googlemaps.Client(key=gmapsAPIkey)
 
         # Get the Latitude and Longitude from the postcode of the cheapest station
-        if(request.form['submit'] == "automatic"):
+        if (request.form['submit'] == "automatic"):
             geocode_result = gmaps.geocode(str(locationResult[0]) + ', Australia')
-            locLat  = str(geocode_result[0]['geometry']['location']['lat'])
+            locLat = str(geocode_result[0]['geometry']['location']['lat'])
             locLong = str(geocode_result[0]['geometry']['location']['lng'])
             location = locLat + "," + locLong
 
-        elif(request.form['submit'] == "manual"):
+        elif (request.form['submit'] == "manual"):
             # Since we have manually chosen a location, set priceOveride to true
             priceOveride = True
             geocode_result = gmaps.geocode(str(request.form['postcode']) + ', Australia')
-            locLat  = str(geocode_result[0]['geometry']['location']['lat'])
+            locLat = str(geocode_result[0]['geometry']['location']['lat'])
             locLong = str(geocode_result[0]['geometry']['location']['lng'])
             location = locLat + "," + locLong
         else:
             # They tried to do something different from the manual and automatic form, so throw up an error
-            session['ErrorMessage'] = "Invalid form submission. Either use the manual or automatic one on the main page."
+            session[
+                'ErrorMessage'] = "Invalid form submission. Either use the manual or automatic one on the main page."
             return redirect(url_for('index'))
 
         # If the fuel type is not within our boundaries (52 = E10, 58 = LPG) throw up an error
-        if(fuelType < "52" or fuelType > "58"):
+        if (fuelType < "52" or fuelType > "58"):
             session['ErrorMessage'] = "Invalid fuel type selected. Try again!"
             return redirect(url_for('index'))
 
-        # Now we start the request header
-        url       = "https://711-goodcall.api.tigerspike.com/api/v1/FuelLock/StartSession"
-        replace   = url.replace("https", "http").lower()
-        timestamp = int(time.time())
-        uuidVar   = str(uuid.uuid4())
-
         # The payload encrypted data
-        payload = '{"LastStoreUpdateTimestamp":' + str(timestamp) + ',"Latitude":"' + locLat + '","Longitude":"' + locLong + '"}'
-        encrypteddata = base64.b64encode(hashlib.md5(payload).digest())
+        timestamp = int(time.time())
+        payload = '{"LastStoreUpdateTimestamp":' + str(
+            timestamp) + ',"Latitude":"' + locLat + '","Longitude":"' + locLong + '"}'
 
-        # Now we build the final string to encrypt
-        str3 = key + "POST" + replace + str(timestamp) + uuidVar + encrypteddata
-        # And then we encrypt it all
-        signature = base64.b64encode(hmac.new(key2, str3, digestmod=hashlib.sha256).digest())
+        # The FuelLock URL
+        relativeURL = "/FuelLock/StartSession"
+        url = API_BASE_URL + relativeURL
+        # Generate the tssa string for inclusion in the headers
+        tssa = generateTssa(url, "POST", payload, session['accessToken'])
 
-        # Now we are all encrypted, lets move along!
-        tssa = "tssa " + key + ":" + signature + ":" + uuidVar + ":" + str(timestamp) + ":" + session['accessToken']
-
-        headers = {'User-Agent':'Apache-HttpClient/UNAVAILABLE (java 1.4)',
-                   'Authorization':'%s' % tssa,
-                   'X-OsVersion':'Android 8.1.0',
-                   'X-OsName':'Android',
-                   'X-DeviceID':session['deviceID'],
-                   'X-AppVersion':'1.7.0.2009',
-                   'X-DeviceSecret':session['deviceSecret'],
-                   'Content-Type':'application/json; charset=utf-8'}
+        headers = {'User-Agent': 'Apache-HttpClient/UNAVAILABLE (java 1.4)',
+                   'Authorization': '%s' % tssa,
+                   'X-OsVersion': 'Android 8.1.0',
+                   'X-OsName': 'Android',
+                   'X-DeviceID': session['deviceID'],
+                   'X-AppVersion': '1.7.0.2009',
+                   'X-DeviceSecret': session['deviceSecret'],
+                   'Content-Type': 'application/json; charset=utf-8'}
 
         # Send the request
         response = requests.post(url, data=payload, headers=headers)
@@ -400,13 +421,14 @@ def lockin():
         # Move the response json into an array so we can read it
         returnContent = json.loads(returnContent)
         # Get the store number - I don't think we need this, so I have commented it out!
-        #storeNumber = returnContent['CheapestFuelTypeStores'][0]['StoreNumber']
+        # storeNumber = returnContent['CheapestFuelTypeStores'][0]['StoreNumber']
 
         # If there is a fuel lock already in place we get an error!
         try:
-          if returnContent['ErrorType'] == 0:
-              session['ErrorMessage'] = "An error has occured. This is most likely due to a fuel lock already being in place."
-              return redirect(url_for('index'))
+            if returnContent['ErrorType'] == 0:
+                session[
+                    'ErrorMessage'] = "An error has occured. This is most likely due to a fuel lock already being in place."
+                return redirect(url_for('index'))
         except:
             pass
 
@@ -414,45 +436,41 @@ def lockin():
         for each in returnContent['CheapestFuelTypeStores']:
             x = each['FuelPrices']
             for i in x:
-                if(str(i['Ean']) == fuelType):
+                if (str(i['Ean']) == fuelType):
                     LockinPrice = i['Price']
 
         # If we have performed an automatic search we run the lowest price check
         # LockinPrice = the price from the 7/11 website
         # locationResult[1] = the price from the master131 script
         # If the price that we tried to lock in is more expensive than scripts price, we return an error
-        if not(priceOveride):
-            if not(float(LockinPrice) <= float(locationResult[1])):
-                session['ErrorMessage'] = "The fuel price is too high compared to the cheapest available. The cheapest we found was at " + locationResult[0] + ". Try locking in there!"
+        if not (priceOveride):
+            if not (float(LockinPrice) <= float(locationResult[1])):
+                session[
+                    'ErrorMessage'] = "The fuel price is too high compared to the cheapest available. The cheapest we found was at " + \
+                                      locationResult[0] + ". Try locking in there!"
                 return redirect(url_for('index'))
 
         # Now we want to lock in the maximum litres we can.
         NumberOfLitres = int(float(session['cardBalance']) / LockinPrice * 100)
 
         # Lets start the actual lock in process
-        payload = '{"AccountId":"' + session['accountID'] + '","FuelType":"' + fuelType + '","NumberOfLitres":"' + str(NumberOfLitres) + '"}'
-        encrypteddata = base64.b64encode(hashlib.md5(payload).digest())
+        payload = '{"AccountId":"' + session['accountID'] + '","FuelType":"' + fuelType + '","NumberOfLitres":"' + str(
+            NumberOfLitres) + '"}'
 
-        url       = "https://711-goodcall.api.tigerspike.com/api/v1/FuelLock/Confirm"
-        replace   = url.replace("https", "http").lower()
-        timestamp = int(time.time())
-        uuidVar   = str(uuid.uuid4())
-        # Create a string from the above variables
-        str3      = key + "POST" + replace + str(timestamp) + uuidVar + encrypteddata
+        # The FuelLock URL for locking in the price
+        relativeURL = "/FuelLock/Confirm"
+        url = API_BASE_URL + relativeURL
+        # Generate the tssa string for inclusion in the headers
+        tssa = generateTssa(url, "POST", payload, session['accessToken'])
 
-        # And encrypt the string
-        signature = base64.b64encode(hmac.new(key2, str3, digestmod=hashlib.sha256).digest())
-
-        tssa = "tssa " + key + ":" + signature + ":" + uuidVar + ":" + str(timestamp) + ":" + session['accessToken']
-
-        headers = {'User-Agent':'Apache-HttpClient/UNAVAILABLE (java 1.4)',
-                   'Authorization':'%s' % tssa,
-                   'X-OsVersion':'Android 8.1.0',
-                   'X-OsName':'Android',
-                   'X-DeviceID':session['deviceID'],
-                   'X-AppVersion':'1.7.0.2009',
-                   'X-DeviceSecret':session['deviceSecret'],
-                   'Content-Type':'application/json; charset=utf-8'}
+        headers = {'User-Agent': 'Apache-HttpClient/UNAVAILABLE (java 1.4)',
+                   'Authorization': '%s' % tssa,
+                   'X-OsVersion': 'Android 8.1.0',
+                   'X-OsName': 'Android',
+                   'X-DeviceID': session['deviceID'],
+                   'X-AppVersion': '1.7.0.2009',
+                   'X-DeviceSecret': session['deviceSecret'],
+                   'Content-Type': 'application/json; charset=utf-8'}
 
         # Send through the request and get the response
         response = requests.post(url, data=payload, headers=headers)
@@ -461,12 +479,12 @@ def lockin():
         returnContent = json.loads(response.content)
         try:
             # Check if the response was an error message
-            if(returnContent['Message']):
+            if (returnContent['Message']):
                 # If it is, get the error message and return back to the index
                 session['ErrorMessage'] = returnContent['Message']
                 return redirect(url_for('index'))
             # Otherwise we most likely locked in the price!
-            if(returnContent['Status'] == "0"):
+            if (returnContent['Status'] == "0"):
                 # Update the fuel prices that are locked in
                 lockedPrices()
                 # Get amoount of litres that was locked in from the returned JSON array
@@ -487,6 +505,7 @@ def lockin():
         session['ErrorMessage'] = "Unknown error occured. Please try again!"
         return redirect(url_for('index'))
 
+
 if __name__ == '__main__':
     app.secret_key = os.urandom(12)
-    app.run(debug=True,host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
